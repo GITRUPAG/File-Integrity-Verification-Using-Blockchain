@@ -1,18 +1,19 @@
-# ✨ Full Stack Realtime Chat App ✨
+# ✨ File Integrity Verification Using Blockchain ✨
 
-![Demo App](/frontend/public/screenshot-for-readme.png)
-
-[Video Tutorial on Youtube](https://youtu.be/ntKkVrQqBYY)
 
 Highlights:
-
+- 🔗 Blockchain-Powered Integrity – Secure file verification by storing cryptographic hashes on Ethereum.
+- 🛡️ Tamper Detection – Detect unauthorized modifications with immutable ledger records.
+- 🔍 Proof-of-Existence – Validate file authenticity without revealing its content.
+- 📜 Smart Contract Automation – Ensure transparent and trustless integrity checks.
+- ⚡ Efficient Hashing – Optimized SHA-256 hashing for fast and reliable verification.
+- 🔄 Decentralized Trust – No reliance on centralized authorities for file integrity.
 - 🌟 Tech stack: MERN + Socket.io + TailwindCSS + Daisy UI
 - 🎃 Authentication && Authorization with JWT
 - 👾 Real-time messaging with Socket.io
 - 🚀 Online user status
 - 👌 Global state management with Zustand
 - 🐞 Error handling both on the server and on the client
-- ⭐ At the end Deployment like a pro for FREE!
 - ⏳ And much more!
 
 ### Setup .env file

@@ -53,7 +53,7 @@ export const getMessages = async (req, res) => {
 
 export const sendMessage = async (req, res) => {
   try {
-    const { text, image } = req.body;
+    const { text, image, filename } = req.body; // ✅ Add filename here
     const { id: receiverId } = req.params;
     const senderId = req.user._id;
 
@@ -61,7 +61,6 @@ export const sendMessage = async (req, res) => {
     let imageHash;
 
     if (image) {
-
       // Upload base64 image to cloudinary
       const uploadResponse = await cloudinary.uploader.upload(image);
       imageUrl = uploadResponse.secure_url;
@@ -69,24 +68,35 @@ export const sendMessage = async (req, res) => {
       const normalizedImageUrl = normalizeUrl(imageUrl);
 
       // Generate SHA-256 hash of the image
-      imageHash = await computeFileHash(normalizedImageUrl); // Use await here!
-      console.log("🔄 Storing Image Hash:", imageHash);  // Should log the plain string, not a Promise
+      imageHash = await computeFileHash(normalizedImageUrl);
+      console.log("🔄 Storing Image Hash:", imageHash);
 
-      
-      // Store hash in Sepolia blockchain 
+      // Store hash in Sepolia blockchain
       const blockchainSuccess = await storeImageHashOnBlockchain(imageHash);
       if (!blockchainSuccess) {
         return res.status(500).json({ error: "Failed to store image hash on blockchain" });
       }
     }
 
+    // ✅ ADD THIS LOG to see what you're saving
+    console.log("📦 Saving message with values:", {
+      senderId,
+      receiverId,
+      text,
+      imageUrl,
+      imageHash,
+      filename,
+    });
+
     const newMessage = new Message({
       senderId,
       receiverId,
       text,
       image: imageUrl,
-      imageHash, // Store the hash of the image
+      imageHash,
+      filename, // ✅ Store original filename
     });
+
     await newMessage.save();
 
     const receiverSocketId = getReceiverSocketId(receiverId);
@@ -96,7 +106,8 @@ export const sendMessage = async (req, res) => {
 
     res.status(201).json(newMessage);
   } catch (error) {
-    console.log("Error in sendMessage controller: ", error.message);
+    // ✅ CHANGE THIS LINE to log full error
+    console.error("❌ Full error:", error); // <-- Add this
     res.status(500).json({ error: "Internal server error" });
   }
 };

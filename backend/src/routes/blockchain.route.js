@@ -23,39 +23,36 @@ const router = express.Router();
 // 🟢 POST request to verify file integrity
 router.post("/verify", async (req, res) => {
   try {
-    const { imageUrl, owner, tokenId } = req.body;
+    const { fileUrl, owner, tokenId } = req.body;
 
-    console.log("Received data:", { imageUrl, owner, tokenId }); // Debugging line
+    console.log("Received data:", { fileUrl, owner, tokenId });
 
-    if (!imageUrl || !owner || !tokenId) {
+    if (!fileUrl || !owner || !tokenId) {
       return res.status(400).json({ message: "Missing required fields." });
     }
 
-    const normalizedUrl = normalizeUrl(imageUrl);
+    const normalizedUrl = normalizeUrl(fileUrl);
     if (!normalizedUrl) {
-      return res.status(400).json({ message: "Invalid image URL provided." });
+      return res.status(400).json({ message: "Invalid file URL provided." });
     }
-     
+
     const computedHash = await computeFileHash(normalizedUrl);
-    console.log("Computed Hash:", computedHash); // Debugging line
-    //const formattedComputedHash = computedHash;
+    console.log("Computed Hash:", computedHash);
 
-
-    const storedHash = await getImageHashFromBlockChain(imageUrl);
+    const storedHash = await getImageHashFromBlockChain(fileUrl); 
     if (!storedHash) {
       return res.status(404).json({ message: "Hash not found in blockchain." });
     }
-   // const storedHash = computeFileHash(normalizedUrl)
 
     if (computedHash === storedHash) {
       return res.json({ message: "File verified successfully!" });
     } else {
-      return res.status(400).json({ message: "Failed" });
+      return res.status(400).json({ message: "File integrity verification failed." });
     }
 
   } catch (error) {
-    console.error("Error verifying file:", error); // Debugging line
-    res.status(500).json({ message: "Verification Failed. Try Again" });
+    console.error("Error verifying file:", error);
+    res.status(500).json({ message: "Verification failed. Try again." });
   }
 });
 

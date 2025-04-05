@@ -2,77 +2,112 @@ import { useRef, useState } from "react";
 import { useChatStore } from "../store/useChatStore";
 import { Image, Send, X } from "lucide-react";
 import toast from "react-hot-toast";
+import axios from "axios";
 
 const MessageInput = () => {
   const [text, setText] = useState("");
-  const [imagePreview, setImagePreview] = useState(null);
+  const [file, setFile] = useState(null);
+  const [filePreview, setFilePreview] = useState(null);
   const fileInputRef = useRef(null);
   const { sendMessage } = useChatStore();
 
-  // Handle image file selection
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  const handleFileChange = (e) => {
+    const selectedFile = e.target.files[0];
+    if (!selectedFile) return;
 
-    // Check if the file is an image
-    if (!file.type.startsWith("image/")) {
-      toast.error("Please select an image file");
+    const maxSize = 5 * 1024 * 1024;
+    if (selectedFile.size > maxSize) {
+      toast.error("File size must be under 5MB");
       return;
     }
 
-    // Check file size (5MB limit)
-    const maxSizeInBytes = 5 * 1024 * 1024; // 5MB
-    if (file.size > maxSizeInBytes) {
-      toast.error("Image size should be less than 5MB");
+    setFile(selectedFile);
+
+    if (selectedFile.type.startsWith("image/")) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFilePreview(reader.result);
+      };
+      reader.readAsDataURL(selectedFile);
+    } else if (selectedFile.type === "application/pdf") {
+      setFilePreview("PDF selected");
+    } else {
+      toast.error("Only images or PDFs allowed");
       return;
     }
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setImagePreview(reader.result);
-    };
-    reader.readAsDataURL(file);
   };
 
-  // Remove selected image
-  const removeImage = () => {
-    setImagePreview(null);
+  const removeFile = () => {
+    setFile(null);
+    setFilePreview(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  // Handle sending the message
+  const uploadToCloudinary = async () => {
+    if (!file) return null;
+  
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", "new_one"); // 👈 using your unsigned preset
+  
+    const resourceType = file.type === "application/pdf" ? "raw" : "image";
+  
+    const response = await axios.post(
+      `https://api.cloudinary.com/v1_1/dht9t8zye/${resourceType}/upload`,
+      formData
+    );
+  
+    return response.data.secure_url;
+  };
+  
+
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (!text.trim() && !imagePreview) return;
-
+    if (!text.trim() && !file) return;
+  
     try {
+      let uploadedUrl = null;
+      let fileName = null;
+  
+      if (file) {
+        uploadedUrl = await uploadToCloudinary();
+        fileName = file.name; // ✅ Capture the original filename
+      }
+  
       await sendMessage({
         text: text.trim(),
-        image: imagePreview,
+        image: uploadedUrl,
+        filename: fileName, // ✅ Include filename in the message
       });
-
-      // Clear form
+  
       setText("");
-      setImagePreview(null);
-      if (fileInputRef.current) fileInputRef.current.value = "";
+      removeFile();
     } catch (error) {
       console.error("Failed to send message:", error);
+      toast.error("Failed to send message.");
     }
   };
+  
 
   return (
     <div className="p-4 w-full">
-      {/* Image Preview Section */}
-      {imagePreview && (
+      {/* File Preview */}
+      {filePreview && (
         <div className="mb-3 flex items-center gap-2">
           <div className="relative">
-            <img
-              src={imagePreview}
-              alt="Preview"
-              className="w-20 h-20 object-cover rounded-lg border border-zinc-700"
-            />
+            {file.type === "application/pdf" ? (
+              <div className="w-32 h-20 flex items-center justify-center bg-zinc-800 text-white border border-zinc-700 rounded-lg">
+                PDF Selected
+              </div>
+            ) : (
+              <img
+                src={filePreview}
+                alt="Preview"
+                className="w-20 h-20 object-cover rounded-lg border border-zinc-700"
+              />
+            )}
             <button
-              onClick={removeImage}
+              onClick={removeFile}
               className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-base-300 flex items-center justify-center"
               type="button"
             >
@@ -82,7 +117,7 @@ const MessageInput = () => {
         </div>
       )}
 
-      {/* Message Input Form */}
+      {/* Input Form */}
       <form onSubmit={handleSendMessage} className="flex items-center gap-2">
         <div className="flex-1 flex gap-2">
           <input
@@ -94,15 +129,15 @@ const MessageInput = () => {
           />
           <input
             type="file"
-            accept="image/*"
+            accept="image/*,application/pdf"
             className="hidden"
             ref={fileInputRef}
-            onChange={handleImageChange}
+            onChange={handleFileChange}
           />
 
           <button
             type="button"
-            className={`hidden sm:flex btn btn-circle ${imagePreview ? "text-emerald-500" : "text-zinc-400"}`}
+            className={`hidden sm:flex btn btn-circle ${filePreview ? "text-emerald-500" : "text-zinc-400"}`}
             onClick={() => fileInputRef.current?.click()}
           >
             <Image size={20} />
@@ -111,7 +146,7 @@ const MessageInput = () => {
         <button
           type="submit"
           className="btn btn-sm btn-circle"
-          disabled={!text.trim() && !imagePreview}
+          disabled={!text.trim() && !file}
         >
           <Send size={22} />
         </button>

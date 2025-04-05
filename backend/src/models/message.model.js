@@ -21,6 +21,9 @@ const messageSchema = new mongoose.Schema(
     imageHash: {
       type: String, // New field to store SHA-256 hash of the image
     },
+    filename:{
+      type: String,
+    }
   },
   { timestamps: true }
 );
